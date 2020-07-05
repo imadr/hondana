@@ -1,0 +1,571 @@
+:root{
+    --cover-margin: 15px;
+    --color-placeholder: #80808042;
+    --color-fg-2: white;
+}
+[data-theme="light"]{
+    --color-bg-1: white;
+    --color-bg-2: white;
+    --color-bg-hover: #eee;
+    --color-fg-1: #333;
+    --box-shadow: rgba(0, 0, 0, 0.16);
+    --box-shadow-after: rgba(0, 0, 0, 0.5);
+    --color-disabled: #d5d5d5;
+    --color-fg-tooltip: white;
+    --color-bg-tooltip: #4d4d4d;
+    --color-small-border: #aaa;
+    --color-slider: #333;
+    --color-slider-progress: #d5d5d5;
+}
+[data-theme="dark"]{
+    --color-bg-1: #1f1f1f;
+    --color-bg-2: #2f2f2f;
+    --color-bg-hover: #3e3e3e;
+    --color-fg-1: white;
+    --box-shadow: rgba(0, 0, 0, 0.3);
+    --box-shadow-after: rgba(0, 0, 0, 1);
+    --color-disabled: #424242;
+    --color-fg-tooltip: white;
+    --color-bg-tooltip: #4d4d4d;
+    --color-small-border: #3c3c3c;
+    --color-slider: white;
+    --color-slider-progress: #424242;
+}
+@font-face{
+    font-family: "Roboto";
+    src: url(../webfonts/Roboto-Regular.ttf);
+}
+@font-face{
+    font-family: "Roboto";
+    src: url(../webfonts/Roboto-Bold.ttf);
+    font-weight: bold;
+}
+*{
+    font-family: "Roboto", sans-serif;
+    scrollbar-width: thin;
+}
+body{
+    padding: 0;
+    margin: 0;
+    color: var(--color-fg-1);
+    background-color: var(--color-bg-1);
+    overflow: hidden;
+}
+h1{
+    margin-top: 0;
+}
+::placeholder{
+    color: var(--color-fg-1);
+    opacity: 0.5;
+}
+*{
+    box-sizing: border-box;
+}
+#views-container{
+    padding-top: 70px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+header{
+    user-select: none;
+    position: fixed;
+    top: 0px;
+    width: 100%;
+    box-sizing: border-box;
+    background-color: var(--color-bg-2);
+    display: flex;
+    align-items: center;
+    box-shadow: 0px 3px 6px var(--box-shadow);
+    font-size: 24px;
+    height: 70px;
+    padding-right: 15px;
+    padding-left: 15px;
+    z-index: 1;
+}
+#overlay{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    visibility: hidden;
+    z-index: 3;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s;
+    opacity: 0;
+}
+#sidenav{
+    position: fixed;
+    top: 0px;
+    left: -330px;
+    height: 100%;
+    width: 300px;
+    z-index: 4;
+    background-color: var(--color-bg-2);
+    box-shadow: 4px 0px 6px var(--box-shadow);
+    transition: 0.2s;
+    font-size: 24px;
+    visibility: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.sidenav-elem{
+    padding-left: 30px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+.sidenav-button{
+    cursor: pointer;
+}
+.sidenav-button:hover{
+    background-color: var(--color-bg-hover);
+}
+.sidenav-elem i{
+    width: 1em;
+    text-align: center;
+    margin-right: 1em;
+}
+input{
+    color: var(--color-fg-1);
+    outline-width: 0;
+    outline: none;
+}
+.header-el{
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.header-right{
+    margin-left: auto;
+    height: 100%;
+    display: flex;
+}
+#search-bar input{
+    border: none;
+    background-color: transparent;
+    width: 100%;
+    height: 100%;
+    font-size: 24px;
+}
+#search-bar i{
+    margin-right: 15px;
+}
+#search-bar{
+    height: 100%;
+    flex-grow: 1;
+    position: relative;
+}
+.header-button{
+    cursor: pointer;
+}
+.cover:hover{
+    box-shadow: 3px 4px 6px var(--box-shadow-after);
+}
+.cover{
+    transition: box-shadow 0.2s;
+    cursor: pointer;
+    box-shadow: 3px 4px 6px var(--box-shadow);
+    display: inline-block;
+    background-color: var(--color-placeholder);
+    margin-right: var(--cover-margin);
+    border-radius: 4px;
+    background-size: auto 101%;
+    background-position: 50% 50%;
+    position: relative;
+}
+.cover-title{
+    color: var(--color-fg-2);
+    font-weight: bold;
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1));
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+    height: 20%;
+    border-radius: 4px;
+}
+.cover-title span{
+    user-select: none;
+    position: absolute;
+}
+.covers-row > *:last-child{
+    margin-right: 0px;
+}
+.covers-row{
+    width: calc(100% - 20px);
+    margin: var(--cover-margin);
+    white-space: nowrap;
+}
+.covers-container{
+    width: 100%;
+    overflow-y: scroll;
+    max-height: 1500px;
+    height: 1500px;
+    display: block;
+}
+.slider{
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    height: 5px;
+    width: 200px;
+    margin: 0;
+    border-radius: 5px;
+    background-color: var(--color-slider-progress);
+}
+.slider::-moz-range-progress{
+    background-color: var(--color-slider);
+    height: 100%;
+}
+.slider.slider-right::-moz-range-progress{
+    background-color: var(--color-slider-progress);
+}
+.slider.slider-right{
+    background-color: var(--color-slider);
+}
+.slider::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-slider);
+    cursor: pointer;
+    border-radius: 100%;
+    border: 0;
+    outline: 0;
+}
+.slider::-moz-range-thumb{
+    width: 20px;
+    height: 20px;
+    background-color: var(--color-slider);
+    cursor: pointer;
+    border-radius: 100%;
+    border: 0;
+    outline: 0;
+}
+#zoom-slider-container{
+    text-align: right;
+    padding-top: 15px;
+    padding-right: 15px;
+    margin-bottom: 20px;
+}
+.invisible{
+    display: none !important;
+}
+#library-view{
+    padding-bottom: 40px;
+}
+#manga-info-container{
+    margin-right: 20px;
+    display: flex;
+    flex: 1;
+}
+#manga-chapters-container{
+    position: relative;
+    flex: 1;
+}
+#manga-info-right{
+    flex: 1;
+}
+#manga-info-left{
+    text-align: center;
+    width: 45%;
+    margin-right: 20px;
+}
+@media only screen and (max-width: 900px){
+    #manga-view{
+        flex-direction: column;
+    }
+    #manga-chapters-container{
+        margin-top: 30px;
+        padding-bottom: 40px;
+        min-height: 100vh;
+    }
+    #manga-info-left{
+        width: 50%;
+    }
+}
+@media only screen and (max-width: 600px){
+    #manga-info-container{
+        flex-direction: column;
+        margin-right: 0px;
+    }
+    #manga-info-left{
+        width: 100%;
+        margin-right: 0px;
+        margin-bottom: 20px;
+    }
+}
+#manga-cover{
+    box-shadow: 3px 4px 6px var(--box-shadow);
+    background-color: var(--color-placeholder);
+    border-radius: 4px;
+    background-size: auto 101%;
+    background-position: 50% 50%;
+    width: 100%;
+}
+#manga-info p{
+    margin: 0;
+    margin-bottom: 0.4em;
+}
+#manga-info{
+    font-size: 1.3em;
+}
+#manga-description:not(strong){
+    font-size: 0.8em;
+}
+#manga-view > .right-side{
+    padding-left: 30px;
+    position: relative;
+}
+#chapters-sort{
+    display: inline-block;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    margin-right: 10px;
+    font-size: 1.5em;
+    cursor: pointer;
+}
+.manga-chapter{
+    white-space: nowrap;
+    padding: 0.8em;
+    border-bottom: 1px solid var(--color-small-border);
+    margin-bottom: -1px;
+}
+.manga-chapter div{
+    width: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    vertical-align: top;
+    height: 100%;
+}
+.manga-chapter-buttons{
+    text-align: right;
+    padding-right: 5px;
+}
+.manga-chapter-buttons i{
+    cursor: pointer;
+    padding-left: 10px;
+}
+.button-disabled{
+    color: var(--color-disabled);
+}
+#manga-view{
+    box-sizing: border-box;
+    padding: 30px;
+    height: 100%;
+    display: flex;
+}
+#tooltip{
+    display: none;
+    position: absolute;
+    z-index: 999;
+    padding: 8px;
+    color: var(--color-fg-tooltip);
+    background-color: var(--color-bg-tooltip);
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    pointer-events: none;
+    text-align: center;
+}
+#manga-title{
+    margin-bottom: 0px;
+}
+#manga-subtitle{
+    margin-top: 10px;
+    font-size: 1.7em;
+    font-weight: normal;
+}
+.tabs{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+.tab{
+    align-self: stretch;
+    border-bottom: 1px solid var(--color-small-border);
+    padding: 0.5em;
+    padding-right: 1em;
+    padding-left: 1em;
+    text-align: center;
+}
+.tab-placeholder{
+    border-bottom: 1px solid var(--color-small-border);
+    flex: 1;
+}
+.tab.active{
+    border: 1px solid var(--color-small-border);
+    border-bottom: none;
+    background-color: var(--color-bg-2);
+}
+.tab:not(.active){
+    cursor: pointer;
+}
+.tab:not(.active):hover{
+    background-color: var(--color-bg-hover);
+}
+#chapters-list{
+    position: relative;
+    border: 1px solid var(--color-small-border);
+    border-top: none;
+    overflow: auto;
+    height: 95%;
+    background-color: var(--color-bg-2);
+    max-height: 100vh;
+}
+#reader-view{
+    user-select: none;
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+}
+#reader-page{
+    pointer-events: none;
+    height: 100vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 1;
+}
+#reader-page-container{
+    scrollbar-width: initial;
+}
+#reader-page-container.fit-width{
+    height: 100vh;
+    overflow-y: scroll;
+    position: relative;
+    overflow-x: hidden;
+}
+#reader-page-container.fit-width > #reader-page{
+    left: 50%;
+    top: 0%;
+    transform: translateX(-50%);
+    width: 100vw;
+    height: initial;
+}
+#reader-top:hover{
+    opacity: 1;
+}
+#reader-top{
+    opacity: 0;
+    background-color: var(--color-bg-2);
+    color: var(--color-fg-1);
+    z-index: 2;
+    position: absolute;
+    top: 0;
+    width: 100vw;
+    min-height: 70px;
+    display: flex;
+    font-size: 1.5em;
+}
+#reader-top-title{
+    flex-grow: 1;
+}
+#reader-bottom:hover{
+    opacity: 1;
+}
+#reader-bottom{
+    opacity: 0;
+    background-color: var(--color-bg-2);
+    color: var(--color-fg-1);
+    z-index: 2;
+    position: absolute;
+    bottom: 0;
+    width: 100vw;
+    min-height: 70px;
+    display: flex;
+    font-size: 1.5em;
+}
+.reader-bar-button{
+    cursor: pointer;
+}
+.reader-bar-part{
+    height: 100%;
+    padding: 20px;
+}
+#reader-bottom-slider-container{
+    flex-grow: 1;
+}
+#reader-bottom-slider{
+    width: 100%;
+    vertical-align: middle;
+    margin-top: -6px;
+}
+.loader{
+    border: 16px solid transparent;
+    border-top: 16px solid var(--color-placeholder);
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 15px;
+    animation: spin 2s linear infinite;
+    display: inline-block;
+}
+@keyframes spin{
+    0%{
+        transform: rotate(0deg);
+    }
+    100%{
+        transform: rotate(360deg);
+    }
+}
+.big-thing-in-center i{
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+.big-thing-in-center{
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    color: var(--color-disabled);
+    font-size: 3em;
+}
+.manga-add-header > #view-name-container{
+    display: none;
+}
+.manga-add-header > .header-right{
+    margin-left: auto;
+    width: 100%;
+}
+#search-bar-suggestions{
+    background-color: var(--color-bg-2);
+    box-shadow: 0px 3px 6px var(--box-shadow);
+    position: absolute;
+    bottom: 0;
+    transform: translateY(100%);
+    width: 100%;
+    padding-bottom: 20px;
+    border-radius: 10px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    display: none;
+}
+#search-bar-suggestions > div{
+    padding: 1em;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    cursor: pointer;
+}
+#search-bar-suggestions > div:hover{
+    background-color: var(--color-bg-hover);
+}
+.manga-add-header #search-bar #search-bar-suggestions.not-empty{
+    display: initial;
+}
+.manga-add-header #search-bar{
+    margin-right: 2em;
+}
+.manga-add-header #search-bar input{
+    margin-left: 0.99em;
+}

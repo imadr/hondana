@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hondana</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/all.min.css') }}">
+</head>
+<body data-theme="light">
+    <div id="not-reader">
+        <header id="header">
+            <div class="header-el invisible header-button" id="header-burger-button">
+                <i class="fas fa-bars header-button"></i>
+            </div>
+            <div class="header-el invisible header-button" id="header-return-button">
+                <i class="fas fa-arrow-left header-button"></i>
+            </div>
+            <div class="header-el" id="view-name-container">
+                <span id="view-name"></span>
+            </div>
+            <div class="header-right">
+                <div class="header-el" id="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search library..." autocomplete="off">
+                    <div id="search-bar-suggestions"></div>
+                </div>
+                <div class="header-el header-button" id="add-manga-button">
+                    <i class="fas fa-bookmark hoverable" data-hover="Add manga to library"></i>
+                </div>
+                <div class="header-el header-button" id="theme-button">
+                    <i class="fas fa-moon hoverable"></i>
+                </div>
+            </div>
+        </header>
+        <div id="overlay"></div>
+        <div id="sidenav">
+            <div class="sidenav-elem">
+                <i class="fas fa-times header-button" id="close-sidenav-button"></i>
+            </div>
+            <div class="sidenav-elem sidenav-button" id="sidenav-library">
+                <i class="fas fa-book"></i> Library
+            </div>
+            <div class="sidenav-elem sidenav-button" id="sidenav-downloads">
+                <i class="fas fa-download"></i> Downloads
+            </div>
+        </div>
+        <div id="views-container">
+            <div class="view invisible" id="library-view">
+                <div class="big-thing-in-center" id="library-empty"><i class="fas fa-book-open"></i><br>Your library is empty</div>
+                <div id="zoom-slider-container">
+                    <input id="zoom-slider" type="range" min="1" max="10" class="slider" autocomplete="off">
+                </div>
+                <div id="covers-container">
+                </div>
+            </div>
+            <div class="view invisible" id="manga-view">
+                <div id="manga-info-container">
+                    <div id="manga-info-left">
+                        <img id="manga-cover">
+                    </div>
+                    <div id="manga-info-right">
+                        <h1 id="manga-title"></h1>
+                        <h2 id="manga-subtitle"></h2>
+                        <div id="manga-info">
+                            <p><strong>Author</strong> <span id="manga-author"></span></p>
+                            <p><strong>Status</strong> <span id="manga-status"></span></p>
+                            <p><strong>Genres</strong> <span id="manga-genres"></span></p>
+                            <p><strong>Description</strong> <span id="manga-description"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div id="manga-chapters-container">
+                    <div id="manga-sources-tabs" class="tabs"></div>
+                    <div id="chapters-sort"><i class="fas fa-sort"></i></div>
+                    <div id="chapters-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="invisible" id="reader-view">
+        <div id="reader-page-container"><img id="reader-page"></div>
+        <div id="reader-top">
+            <div class="reader-bar-part reader-bar-button" id="reader-close-button">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="reader-bar-part" id="reader-top-title"></div>
+            <div class="reader-bar-part reader-bar-button" id="reader-fit-button">
+                <i class="fas fa-arrows-alt-h hoverable"></i>
+            </div>
+            <div class="reader-bar-part reader-bar-button" id="reader-direction-button">
+                <i class="fas fa-long-arrow-alt-right hoverable"></i>
+            </div>
+        </div>
+        <div id="reader-bottom">
+            <div class="reader-bar-part reader-bar-button" id="reader-bottom-button-left">
+                <i class="fas fa-step-backward"></i>
+            </div>
+            <div class="reader-bar-part" id="chapter-page-left"></div>
+            <div class="reader-bar-part" id="reader-bottom-slider-container">
+                <input id="reader-bottom-slider" type="range" class="slider" autocomplete="off" min="0">
+            </div>
+            <div class="reader-bar-part" id="chapter-page-right"></div>
+            <div class="reader-bar-part reader-bar-button" id="reader-bottom-button-right">
+                <i class="fas fa-step-forward"></i>
+            </div>
+        </div>
+    </div>
+    <div id="tooltip"></div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
