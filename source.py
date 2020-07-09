@@ -65,7 +65,7 @@ class MangalifeSource():
 
     def get_chapters_list(self, manga, get_urls):
         url_title = re.sub("[^A-Za-z0-9 ]+", "", manga.title)
-        url_title = "-".join(url_title.split(" "))
+        url_title = "-".join([x.capitalize() for x in url_title.split(" ")])
 
         url = self.domain+"/rss/"+url_title+".xml"
 
