@@ -22,6 +22,8 @@ def api(args=""):
         return jsonify(database.get_mangas_info())
     elif args[0] == "sources":
         return jsonify([s.name for s in source.sources])
+    elif args[0] == "downloads":
+        return jsonify(list(source.chapters_progress.values()))
     elif args[0] == "manga" and len(args) >= 2 and args[1].isdigit():
         i = int(args[1])
         manga = database.get_manga(i)
@@ -48,4 +50,4 @@ def api(args=""):
         return jsonify("Invalid args")
 
 database.open_database()
-app.run(port=80, debug=True)
+app.run(host="0.0.0.0", port=80, debug=True)

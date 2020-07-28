@@ -82,6 +82,7 @@ def open_database():
     try:
         mangas_json_file = open("hondana_data/mangas.json", encoding="utf-8")
         mangas_data = json.load(mangas_json_file)
+        mangas_json_file.close()
 
         global mangas
         for item in mangas_data:
@@ -93,6 +94,7 @@ def open_database():
         print("Error decoding JSON file: "+e.msg)
 
 def add_manga(title):
+    print(title)
     if title in [x.title for x in mangas]:
         return "Manga already in library"
 
@@ -110,7 +112,6 @@ def add_manga(title):
         os.makedirs(mangas_data_path / manga_dir)
 
     mangas.append(manga)
-    update_json_file()
     update_manga_info(manga.id)
 
     return "Manga added to library"
@@ -163,10 +164,13 @@ def update_manga_info(i):
     req = requests.post("https://graphql.anilist.co/", data={"query": query})
     req_data = req.json()["data"]["Media"]
 
-    if req_data["title"]["english"] == req_data["title"]["romaji"]:
-        manga.subtitle = req_data["title"]["native"]
+    en_title = "" if req_data["title"]["english"] == None else req_data["title"]["english"]
+    native_title = "" if req_data["title"]["native"] == None else req_data["title"]["native"]
+    if en_title == req_data["title"]["romaji"]:
+        manga.subtitle = native_title
     else:
-        manga.subtitle = req_data["title"]["native"]+" - "+req_data["title"]["english"]
+        manga.subtitle = native_title+" - "+en_title
+
     manga.status = req_data["status"].lower().capitalize()
     manga.description = req_data["description"].split("<br>")[0]
     manga.genres = req_data["genres"]
@@ -176,14 +180,26 @@ def update_manga_info(i):
 
     path = mangas_data_path / manga.dir
 
-    file = path / manga.cover
-    with open(file, "wb+") as f:
-        f.write(req.content)
+    cover_file_path = path / manga.cover
+    try:
+        cover_file = open(cover_file_path, "wb+")
+        cover_file.write(req.content)
+        cover_file.close()
+    except OSError as e:
+        print("Error opening file: "+e.filename)
+    except IOError as e:
+        print("Error saving cover image file: "+e.msg)
 
     update_json_file()
     return to_dict(manga)
 
 def update_json_file():
     path = pathlib.Path("hondana_data/mangas.json")
-    with open(path, "w+") as f:
+    try:
+        f = open(path, "w+")
         json.dump(get_mangas_info(), f)
+        f.close()
+    except OSError as e:
+        print("Error opening file: "+e.filename)
+    except IOError as e:
+        print("Error saving json file: "+e.msg)

@@ -73,20 +73,41 @@ function fetch_mangas(){
     });
 }
 
+function toggle(selector, visible){
+    if(typeof selector == "string"){
+        $(selector).classList.toggle("invisible", !visible);
+    }
+    else{
+        selector.classList.toggle("invisible", !visible);
+    }
+}
+
+function update_header(view){
+    var library = view == "library";
+    var manga = view == "manga";
+    var add_manga = view == "add_manga";
+    var downloads = view == "downloads";
+
+    toggle("#header-burger-button", (library || downloads) && !manga);
+    toggle("#add-manga-button", library);
+    toggle("#header-return-button", add_manga || manga);
+    toggle("#library-view", library || add_manga);
+    toggle("#manga-view", manga);
+    toggle("#downloads-view", downloads);
+    toggle("#search-bar", library || add_manga);
+    toggle("#search-bar > i", library);
+
+    $("#header").classList.toggle("manga-add-header", add_manga);
+}
+
 function set_library_view(){
     current_view = "library";
-    $("#view-name").innerHTML = "Library";
-    $("#header-burger-button").classList.toggle("invisible", false);
-    $("#header-return-button").classList.toggle("invisible", true);
-    $("#header").classList.toggle("manga-add-header", false);
-    $("#add-manga-button").classList.toggle("invisible", false);
-    $("#search-bar").querySelector("input").value = "";
-    $("#search-bar").querySelector("i").classList.toggle("invisible", false);
-    $("#search-bar").querySelector("input").placeholder = "Search library...";
     hide_views();
-    $("#library-view").classList.toggle("invisible", false);
+    update_header("library");
+    $("#view-name").innerHTML = "Library";
+    $("#search-bar").querySelector("input").value = "";
+    $("#search-bar").querySelector("input").placeholder = "Search library...";
     generate_covers(settings["cover_per_row"], mangas, null);
-    $("#search-bar").classList.toggle("invisible", false);
 }
 
 function generate_covers(cover_per_row, mangas, filter){
@@ -104,25 +125,27 @@ function generate_covers(cover_per_row, mangas, filter){
     var covers_container = $("#covers-container");
     covers_container.innerHTML = "";
 
-    var rows_number = Math.ceil(mangas.length/cover_per_row);
-    var rows = [];
-
-    for(var i = 0; i < rows_number; i++){
+    function create_row(){
         var row = document.createElement("div");
         row.className = "covers-row";
-        rows.push(row);
         covers_container.append(row);
+        return row;
     }
+
+    var current_row = create_row();
 
     var cover_margin = getComputedStyle(document.body).getPropertyValue("--cover-margin");
     cover_margin = parseInt(cover_margin.slice(0, -2));
-    var width = (rows[0].offsetWidth-(cover_margin*(cover_per_row)))/cover_per_row;
+    var width = (current_row.offsetWidth-(cover_margin*(cover_per_row)))/cover_per_row;
 
+    var display_count = 0;
     for(var i = 0; i < mangas.length; i++){
         var manga = mangas[i];
         if(filter != null){
             if(manga.title.toLowerCase().indexOf(filter) == -1) continue;
         }
+        display_count++;
+
         var cover = document.createElement("div");
         cover.className = "cover";
         cover.id = "cover-"+manga.id;
@@ -136,8 +159,12 @@ function generate_covers(cover_per_row, mangas, filter){
         cover_title.childNodes[0].style.bottom = (width/14)+"px";
         cover_title.childNodes[0].style.left = (width/14)+"px";
         cover.append(cover_title);
-        rows[Math.floor(i/cover_per_row)].append(cover);
-        rows[Math.floor(i/cover_per_row)].style.height = cover.offsetHeight+"px";
+
+        current_row.append(cover);
+        current_row.style.height = cover.offsetHeight+"px";
+        if(display_count%cover_per_row == 0){
+            current_row = create_row();
+        }
 
         (function(i){
             cover.onclick = function(){
@@ -203,23 +230,22 @@ function close_sidebar(){
 function hide_views(){
     var view_elems = $(".view");
     for(var view_elem of view_elems){
-        view_elem.classList.toggle("invisible", true);
+        toggle(view_elem, false);
     }
-    $("#not-reader").classList.toggle("invisible", false);
-    $("#reader-view").classList.toggle("invisible", true);
+    toggle("#not-reader", true);
+    toggle("#reader-view", false);
+    clearInterval(show_downloads_interval);
 }
 
 function set_manga_view(){
-    $("#header-burger-button").classList.toggle("invisible", true);
-    $("#header-return-button").classList.toggle("invisible", false);
-    $("#header").classList.toggle("manga-add-header", false);
-    $("#add-manga-button").classList.toggle("invisible", true);
+    current_view = "manga";
+    hide_views();
+    update_header("manga");
+
     current_source = 0;
 
     var manga = mangas[current_manga];
     $("#view-name").innerHTML = manga.title;
-    hide_views();
-    $("#manga-view").classList.toggle("invisible", false);
 
     var width = 300;
     $("#manga-cover").src = manga.cover;
@@ -230,8 +256,6 @@ function set_manga_view(){
     $("#manga-status").innerHTML = manga.status;
     $("#manga-description").innerHTML = manga.description;
     $("#manga-genres").innerHTML = manga.genres.join(", ");
-
-    $("#search-bar").classList.toggle("invisible", true);
 
     $("#manga-sources-tabs").innerHTML = "";
     for(var i = 0; i < sources.length; i++){
@@ -267,7 +291,9 @@ function switch_source(sourceId){
 var chapters_list_aborter = null;
 
 $("#chapters-sort").onclick = function(){
-    settings["chapters_order"] = settings["chapters_order"] == "desc" ? "asc" : "desc";
+    var chapters_order = settings["chapters_order"] == "desc" ? "asc" : "desc";
+    update_settings("chapters_order", chapters_order);
+
     var list = $("#chapters-list");
     for(var i = 1; i < list.childNodes.length; i++){
         list.insertBefore(list.childNodes[i], list.firstChild);
@@ -346,7 +372,13 @@ function create_chapter_line(i, chapter, manga){
             }
             else{
                 fetch("/api/manga/"+manga.id+"/download_chapter/"+current_source+"/"+chapter.id);
-                this.parentNode.parentNode.querySelector(".chapter-title").innerHTML += "(Downloading)";
+                var chapter_title = this.parentNode.parentNode.querySelector(".chapter-title");
+                if(!chapter_title.querySelector(".downloading")){
+                    var downloading = document.createElement("span");
+                    downloading.className = "downloading";
+                    downloading.innerHTML = "(Downloading)";
+                    chapter_title.appendChild(downloading);
+                }
             }
         };
     })(i, chapter);
@@ -424,11 +456,13 @@ $("#search-bar input").oninput = function(){
 };
 
 function set_reader_view(page){
+    current_view = "reader";
     current_page = page;
     var chapter = current_manga_chapters[current_chapter];
 
-    $("#not-reader").classList.toggle("invisible", true);
-    $("#reader-view").classList.toggle("invisible", false);
+    toggle("#not-reader", false);
+    toggle("#reader-view", true);
+
     set_direction_button();
     set_fit_button();
     $("#reader-page-container").classList.toggle("fit-width", settings["reader_fit"] == "width");
@@ -475,7 +509,8 @@ function set_reader_page(){
     }
 }
 
-$("#reader-bottom-slider").oninput = function(){
+$("#reader-bottom-slider").oninput = function(e){
+    e.preventDefault();
     var chapter = current_manga_chapters[current_chapter];
     current_page = parseInt(this.value);
     if(settings["reader_direction"] == "right_to_left"){
@@ -484,34 +519,67 @@ $("#reader-bottom-slider").oninput = function(){
     set_reader_page();
 };
 
-$("#reader-view").onclick = function(e){
-    var chapter = current_manga_chapters[current_chapter];
-    var next = false;
-    if(e.clientX > this.offsetWidth/2){
-        next = true;
-    }
-    if(settings["reader_direction"] == "right_to_left") next = !next;
-
-    if(!next){
-        if(current_page > 0){
-            current_page--;
-        }
-        else{
-            previous_chapter();
-        }
-    }
-
-    if(next){
-        if(current_page < chapter.n_pages-1){
-            current_page++;
-        }
-        else{
-            next_chapter();
-        }
-    }
-
-    set_reader_page();
+$("#reader-bottom-slider").onkeydown = function(e){
+    return false;
 };
+
+document.body.addEventListener("keydown", function(e){
+    if(current_view == "reader"){
+        right_to_left = settings["reader_direction"] == "right_to_left";
+
+        if(right_to_left && e.keyCode == "39" || !right_to_left && e.keyCode == "37"){
+            previous_page();
+        }
+        else if(!right_to_left && e.keyCode == "39" || right_to_left && e.keyCode == "37"){
+            next_page();
+        }
+    }
+});
+
+$("#reader-view").onclick = function(e){
+    var direction;
+
+    if(e.clientX > this.offsetWidth/2){
+        direction = "right";
+    }
+    else if(e.clientX < this.offsetWidth/2){
+        direction = "left";
+    }
+    else{
+        return;
+    }
+
+    var right_to_left = settings["reader_direction"] == "right_to_left";
+
+    if(direction == "right" && !right_to_left || direction == "left" && right_to_left){
+        next_page();
+    }
+    else{
+        previous_page();
+    }
+};
+
+function next_page(){
+    var chapter = current_manga_chapters[current_chapter];
+    if(current_page < chapter.n_pages-1){
+        current_page++;
+    }
+    else{
+        next_chapter();
+    }
+    set_reader_page();
+}
+
+function previous_page(){
+    var chapter = current_manga_chapters[current_chapter];
+    if(current_page > 0){
+        current_page--;
+    }
+    else{
+        previous_chapter();
+    }
+    set_reader_page();
+}
 
 $("#reader-close-button").onclick = function(e){
     set_manga_view();
@@ -581,15 +649,59 @@ $("#reader-bottom").onclick = $("#reader-top").onclick = function(e){
 };
 
 $("#add-manga-button").onclick = function(){
-    $("#header").classList.toggle("manga-add-header", true);
+    current_view = "add_manga";
+    update_header("add_manga");
     generate_covers(settings["cover_per_row"], mangas, null);
     $("#search-bar-suggestions").innerHTML = "";
     $("#search-bar-suggestions").classList.toggle("not-empty", false);
-    this.classList.toggle("invisible", true);
-    $("#header-burger-button").classList.toggle("invisible", true);
-    $("#header-return-button").classList.toggle("invisible", false);
-    $("#search-bar").querySelector("i").classList.toggle("invisible", true);
     $("#search-bar").querySelector("input").placeholder = "Search Anilist...";
     $("#search-bar").querySelector("input").value = "";
-    current_view = "add_manga";
+    $("#search-bar").querySelector("input").focus();
+}
+
+$("#sidenav-downloads").onclick = function(){
+    close_sidebar();
+    set_downloads_view();
+};
+
+var show_downloads_interval;
+
+function set_downloads_view(){
+    current_view = "downloads";
+    hide_views();
+    update_header("downloads")
+    $("#view-name").innerHTML = "Downloads";
+    $("#downloads-list").innerHTML = "";
+    toggle("#downloads-empty", true);
+
+    show_downloads();
+    show_downloads_interval = setInterval(function(){
+        show_downloads();
+    }, 500);
+}
+
+function show_downloads(downloads){
+    fetch("/api/downloads").then(res => {
+        return res.json();
+    }).then(data => {
+        var empty = true;
+        var downloads_list = $("#downloads-list");
+        downloads_list.innerHTML = "";
+
+        for(var download of data){
+            if(download == null) continue;
+            empty = false;
+            var download_element = document.createElement("div");
+            download_element.className = "download";
+            var progress = 100-download[0]*100/download[1];
+            download_element.innerHTML = `<div class="download-title">`+download[2]+`</div>
+            <div class="download-subtitle">`+download[3]+`</div>
+            <div class="progress-bar">
+                <div class="progress-bar-full" style="width: `+progress+`%;"></div>
+            </div>`;
+            downloads_list.appendChild(download_element);
+        }
+
+        toggle("#downloads-empty", empty);
+    });
 }

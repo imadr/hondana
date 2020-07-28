@@ -7,18 +7,21 @@ import threading, queue
 import pathlib
 import database
 import re
+import uuid
 
 chapters_queue = queue.Queue()
-chapters_progress = []
+chapters_progress = {}
 images_queue = queue.Queue()
 thread_lock = threading.Lock()
+download_paused = False
 
 def chapter_downloader():
     while True:
-        chapter = chapters_queue.get()
+        source, manga, chapter_id = chapters_queue.get()
         with thread_lock:
-            chapters_progress.append(None)
-            chapter[0].chapter_downloader(chapter[1], chapter[2], len(chapters_progress)-1)
+            progress_id = str(uuid.uuid4())
+            chapters_progress[progress_id] = None
+            source.chapter_downloader(manga, chapter_id, progress_id)
 
 def image_downloader():
     while True:
@@ -38,8 +41,9 @@ def image_downloader():
                 return
 
         with thread_lock:
-            chapters_progress[progress_id] -= 1
-            if chapters_progress[progress_id] == 0:
+            chapters_progress[progress_id][0] -= 1
+            if chapters_progress[progress_id][0] == 0:
+                del chapters_progress[progress_id]
                 print("done downloading chapter "+str(image_file))
                 existing_chapter = next((x for x in manga.downloaded_chapters if x.id == chapter.id), None)
                 if existing_chapter is None:
@@ -51,7 +55,7 @@ def image_downloader():
                 database.update_json_file()
 
 threading.Thread(target=chapter_downloader, daemon=True).start()
-for i in range(0, 5):
+for i in range(0, 1):
     threading.Thread(target=image_downloader, daemon=True).start()
 
 class LocalSource():
@@ -107,14 +111,18 @@ class MangalifeSource():
         soup = BeautifulSoup(req.text, "html.parser")
 
         cur_chapter = json.loads(re.search("vm\.CurChapter = (.*);", req.text).group(1))
+
         cur_pathname = re.search("vm.CurPathName = \"(.*)\"", req.text).group(1)
         index_name = re.search("vm.IndexName = \"(.*)\"", req.text).group(1)
         image_url_prefix = "https://"+cur_pathname+"/manga/"+index_name+"/"
         image_url_prefix += "" if cur_chapter["Directory"] == "" else cur_chapter["Directory"]+"/"
-        image_url_prefix += cur_chapter["Chapter"][1:len(cur_chapter["Chapter"])-1]+"-"
+        image_url_prefix += cur_chapter["Chapter"][1:len(cur_chapter["Chapter"])-1]
+        if(cur_chapter["Chapter"][-1] != "0"):
+            image_url_prefix += "."+cur_chapter["Chapter"][-1]
+        image_url_prefix += "-"
 
         chapter_n_pages = int(cur_chapter["Page"])
-        chapters_progress[progress_id] = chapter_n_pages
+        chapters_progress[progress_id] = [chapter_n_pages, chapter_n_pages, manga.title, chapter_title]
         chapter = database.Chapter({
             "id": chapter_id,
             "title": chapter_title,
@@ -128,7 +136,16 @@ class MangalifeSource():
             image_file = chapter_path / (str(i-1)+".png")
             images_queue.put([image_url_prefix+page+".png", image_file, manga, chapter, progress_id])
 
-        #{{vm.ChapterImage(vm.CurChapter.Chapter)}}-{{vm.PageImage(Page)}}.png"
+    def enqueue_chapter(self, manga, chapter_id):
+        chapters_queue.put([self, manga, chapter_id]);
+
+class Manganelo():
+    def __init__(self):
+        self.domain = "https://manganelo.com"
+        self.name = "Manganelo"
+
+    def get_chapters_list(self, manga, get_urls):
+        pass
 
     def enqueue_chapter(self, manga, chapter_id):
         chapters_queue.put([self, manga, chapter_id]);
