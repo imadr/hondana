@@ -18,7 +18,7 @@ Manga reader that runs in the browser, inspired by [Tachiyomi](https://github.co
 * Run it
 `$ python main.py`
 
-* Open `http://localhost` in your browser.
+* Open `http://localhost:1080` in your browser.
 
 ### Supported sources
 

@@ -7,6 +7,14 @@ var $ = function(selector){
     }
 };
 
+function form_builder(obj){
+    var form_data = new FormData();
+    for(var key in obj){
+        form_data.append(key, obj[key]);
+    }
+    return form_data;
+}
+
 var default_settings = {
     "theme": "light",
     "cover_per_row": 6,
@@ -30,7 +38,7 @@ if(localStorage.getItem("settings") != null){
 }
 localStorage.setItem("settings", JSON.stringify(settings));
 
-var mangas = [],
+var mangas = {},
     sources = [],
     current_manga,
     current_source,
@@ -56,18 +64,11 @@ function fetch_mangas(){
     fetch("/api/mangas").then(res => {
         return res.json();
     }).then(data => {
-        mangas = [];
-
+        mangas = {};
         for(var manga of data){
             manga.cover = "/mangas/"+manga.dir+"/"+manga.cover;
-            mangas.push(manga);
+            mangas[manga.id] = manga;
         }
-
-        mangas.sort(function(a, b){
-            if(a.title > b.title) return 1;
-            if(a.title < b.title) return -1;
-            return 0;
-        });
 
         set_library_view();
     });
@@ -90,6 +91,9 @@ function update_header(view){
 
     toggle("#header-burger-button", (library || downloads) && !manga);
     toggle("#add-manga-button", library);
+    toggle("#pause-download-button", downloads);
+    toggle("#clear-download-button", downloads);
+    toggle("#delete-manga-button", manga);
     toggle("#header-return-button", add_manga || manga);
     toggle("#library-view", library || add_manga);
     toggle("#manga-view", manga);
@@ -107,11 +111,19 @@ function set_library_view(){
     $("#view-name").innerHTML = "Library";
     $("#search-bar").querySelector("input").value = "";
     $("#search-bar").querySelector("input").placeholder = "Search library...";
-    generate_covers(settings["cover_per_row"], mangas, null);
+    generate_covers(settings["cover_per_row"], null);
 }
 
-function generate_covers(cover_per_row, mangas, filter){
-    if(mangas.length == 0){
+function generate_covers(cover_per_row, filter){
+    var mangas_ = Object.values(mangas);
+
+    mangas_.sort(function(a, b){
+        if(a.title > b.title) return 1;
+        if(a.title < b.title) return -1;
+        return 0;
+    });
+
+    if(mangas_.length == 0){
         $("#library-empty").style.display = "inherit";
         $("#zoom-slider-container").style.display = "none";
         return;
@@ -139,8 +151,8 @@ function generate_covers(cover_per_row, mangas, filter){
     var width = (current_row.offsetWidth-(cover_margin*(cover_per_row)))/cover_per_row;
 
     var display_count = 0;
-    for(var i = 0; i < mangas.length; i++){
-        var manga = mangas[i];
+    for(var i = 0; i < mangas_.length; i++){
+        var manga = mangas_[i];
         if(filter != null){
             if(manga.title.toLowerCase().indexOf(filter) == -1) continue;
         }
@@ -171,19 +183,19 @@ function generate_covers(cover_per_row, mangas, filter){
                 current_manga = i;
                 set_manga_view();
             };
-        })(i);
+        })(manga.id);
     }
 }
 
 $("#zoom-slider").oninput = function(){
     update_settings("cover_per_row", this.value);
-    generate_covers(settings["cover_per_row"], mangas, null);
+    generate_covers(settings["cover_per_row"], null);
 };
 
 $("#zoom-slider").value = settings["cover_per_row"];
 
 window.onresize = function(){
-    generate_covers(settings["cover_per_row"], mangas, null);
+    generate_covers(settings["cover_per_row"], null);
 };
 
 function update_settings(setting, value){
@@ -300,12 +312,6 @@ $("#chapters-sort").onclick = function(){
     }
 }
 
-async function fetch_chapters_list(manga, source, signal){
-    var res = await fetch("/api/manga/"+manga.id+"/get_chapters_list/"+source, {signal})
-    var data = await res.json();
-    return data;
-}
-
 function display_chapters_list(){
     var manga = mangas[current_manga];
 
@@ -321,7 +327,9 @@ function display_chapters_list(){
     chapters_list_aborter = new AbortController();
     var signal = chapters_list_aborter.signal;
 
-    fetch_chapters_list(manga, current_source, signal).then(data => {
+    var res = fetch("/api/manga/"+manga.id+"/get_chapters_list/"+current_source, {signal}).then(res => {
+        return res.json();
+    }).then(data => {
         if(data.length > 0){
             $("#chapters-list").innerHTML = "";
         }
@@ -419,7 +427,7 @@ var search_aborter = null;
 $("#search-bar input").oninput = function(){
     $("#search-bar-suggestions").classList.toggle("not-empty", false);
     if(current_view == "library"){
-        generate_covers(settings["cover_per_row"], mangas, this.value);
+        generate_covers(settings["cover_per_row"], this.value);
     }
     else if(current_view == "add_manga" && this.value.length > 0){
         $("#search-bar-suggestions").innerHTML = "";
@@ -430,7 +438,12 @@ $("#search-bar input").oninput = function(){
         search_aborter = new AbortController();
         var signal = search_aborter.signal;
 
-        fetch("/api/search_anilist/"+this.value, {signal}).then(function(res){
+        var form_data = form_builder({"search_title": this.value});
+        fetch("/api/search_anilist/", {
+            signal,
+            method: "POST",
+            body: form_data
+        }).then(function(res){
             return res.json();
         }).then(function(data){
             if(data.length > 0){
@@ -443,7 +456,11 @@ $("#search-bar input").oninput = function(){
                 $("#search-bar-suggestions").appendChild(suggestion_element);
                 (function(suggestion){
                     suggestion_element.onclick = function(){
-                        fetch("/api/add_manga/"+suggestion).then(function(res){
+                        var form_data = form_builder({"add_title": suggestion});
+                        fetch("/api/add_manga/", {
+                            method: "POST",
+                            body: form_data
+                        }).then(function(res){
                             return res.json();
                         }).then(function(data){
                             fetch_mangas();
@@ -651,13 +668,65 @@ $("#reader-bottom").onclick = $("#reader-top").onclick = function(e){
 $("#add-manga-button").onclick = function(){
     current_view = "add_manga";
     update_header("add_manga");
-    generate_covers(settings["cover_per_row"], mangas, null);
+    generate_covers(settings["cover_per_row"], null);
     $("#search-bar-suggestions").innerHTML = "";
     $("#search-bar-suggestions").classList.toggle("not-empty", false);
     $("#search-bar").querySelector("input").placeholder = "Search Anilist...";
     $("#search-bar").querySelector("input").value = "";
     $("#search-bar").querySelector("input").focus();
+};
+
+function switch_download(){
+    var button = $("#pause-download-button i");
+    button.classList.toggle("fa-pause", !download_paused);
+    button.classList.toggle("fa-play", download_paused);
+    var attr = download_paused ? "Resume download" : "Pause download";
+    button.setAttribute("data-hover", attr);
+    $("#tooltip").innerHTML = attr;
 }
+
+var download_paused;
+
+fetch("/api/pause_download/").then(res => {
+    return res.json();
+}).then(data => {
+    download_paused = data;
+    switch_download();
+});
+
+$("#pause-download-button").onclick = function(){
+    download_paused = !download_paused;
+    switch_download();
+    fetch("/api/pause_download/"+download_paused);
+};
+
+$("#clear-download-button").onclick = function(){
+    fetch("/api/clear_download/");
+}
+
+function delete_button_set(confirm){
+    var e = $("#delete-manga-button");
+    e.querySelector("i").classList.toggle("fa-trash", !confirm);
+    e.querySelector("i").classList.toggle("fa-question", confirm);
+    e.style.color = confirm ? "red" : "initial";
+    e.querySelector("i").setAttribute("data-hover", confirm ? "Sure ?" : "Delete manga");
+    $("#tooltip").innerHTML = confirm ? "Sure ?" : "Delete manga";
+    e.onclick = function(){
+        if(confirm){
+            fetch("/api/manga/"+current_manga+"/delete/").then(function(){
+                delete_button_set(false);
+                fetch_mangas();
+            });
+        }
+        else{
+            delete_button_set(true);
+        }
+    };
+}
+
+$("#delete-manga-button").onclick = function(){
+    delete_button_set(true);
+};
 
 $("#sidenav-downloads").onclick = function(){
     close_sidebar();

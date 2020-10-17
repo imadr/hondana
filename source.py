@@ -3,30 +3,79 @@ from bs4 import BeautifulSoup
 import time
 import json
 import os
-import threading, queue
+import threading
+import queue
 import pathlib
 import database
 import re
 import uuid
 
-chapters_queue = queue.Queue()
-chapters_progress = {}
-images_queue = queue.Queue()
-thread_lock = threading.Lock()
-download_paused = False
+class ChapterDownloader(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.queue = queue.Queue()
+        self.paused = threading.Event()
+        self.paused.set()
 
-def chapter_downloader():
-    while True:
-        source, manga, chapter_id = chapters_queue.get()
-        with thread_lock:
+    def pause(self):
+        self.paused.clear()
+
+    def resume(self):
+        self.paused.set()
+
+    def run(self):
+        while True:
+            self.paused.wait()
+            self.work()
+
+    def clear(self):
+        self.pause()
+        while not self.queue.empty():
+            self.queue.get()
+        self.resume()
+
+    def add(self, thing):
+        self.queue.put(thing)
+
+    def work(self):
+        source, manga, chapter_id = self.queue.get()
+        with lock:
             progress_id = str(uuid.uuid4())
             chapters_progress[progress_id] = None
             source.chapter_downloader(manga, chapter_id, progress_id)
 
-def image_downloader():
-    while True:
-        image_url, image_file, manga, chapter, progress_id = images_queue.get()
+class ImageDownloader(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.paused_bool = False
+        self.paused = threading.Event()
+        self.paused.set()
+        self.queue = queue.Queue()
 
+    def pause(self):
+        self.paused_bool = True
+        self.paused.clear()
+
+    def resume(self):
+        self.paused_bool = False
+        self.paused.set()
+
+    def clear(self):
+        self.pause()
+        while not self.queue.empty():
+            self.queue.get()
+        self.resume()
+
+    def run(self):
+        while True:
+            self.paused.wait()
+            self.work()
+
+    def add(self, thing):
+        self.queue.put(thing)
+
+    def work(self):
+        image_url, image_file, manga, chapter, progress_id = self.queue.get()
         if image_file.is_file():
             print(str(image_file)+" already exist, skipping")
         else:
@@ -37,11 +86,15 @@ def image_downloader():
                     f.write(req.content)
             except requests.exceptions.ChunkedEncodingError:
                 print("download failed... retrying")
-                images_queue.put([image_url, image_file, manga, chapter, progress_id])
+                self.queue.put([image_url, image_file, manga, chapter, progress_id])
                 return
 
-        with thread_lock:
-            chapters_progress[progress_id][0] -= 1
+        with lock:
+            try:
+                chapters_progress[progress_id][0] -= 1
+            except KeyError:
+                return
+
             if chapters_progress[progress_id][0] == 0:
                 del chapters_progress[progress_id]
                 print("done downloading chapter "+str(image_file))
@@ -54,9 +107,30 @@ def image_downloader():
 
                 database.update_json_file()
 
-threading.Thread(target=chapter_downloader, daemon=True).start()
-for i in range(0, 1):
-    threading.Thread(target=image_downloader, daemon=True).start()
+lock = threading.Lock()
+
+chapter_downloader = ChapterDownloader()
+chapter_downloader.start()
+
+image_downloader = ImageDownloader()
+image_downloader.start()
+
+chapters_progress = {}
+
+def switch_pause(paused):
+    if paused:
+        image_downloader.pause()
+    else:
+        image_downloader.resume()
+
+def clear_download():
+    chapter_downloader.clear()
+    image_downloader.clear()
+    global chapters_progress
+    chapters_progress = {}
+
+def is_paused():
+    return image_downloader.paused_bool
 
 class LocalSource():
     def __init__(self):
@@ -134,21 +208,21 @@ class MangalifeSource():
         for i in range(1, chapter_n_pages+1):
             page = str(i).rjust(3, "0")
             image_file = chapter_path / (str(i-1)+".png")
-            images_queue.put([image_url_prefix+page+".png", image_file, manga, chapter, progress_id])
+            image_downloader.add([image_url_prefix+page+".png", image_file, manga, chapter, progress_id])
 
     def enqueue_chapter(self, manga, chapter_id):
-        chapters_queue.put([self, manga, chapter_id]);
+        chapter_downloader.add([self, manga, chapter_id]);
 
-class Manganelo():
-    def __init__(self):
-        self.domain = "https://manganelo.com"
-        self.name = "Manganelo"
+# class Manganelo():
+#     def __init__(self):
+#         self.domain = "https://manganelo.com"
+#         self.name = "Manganelo"
 
-    def get_chapters_list(self, manga, get_urls):
-        pass
+#     def get_chapters_list(self, manga, get_urls):
+#         pass
 
-    def enqueue_chapter(self, manga, chapter_id):
-        chapters_queue.put([self, manga, chapter_id]);
+#     def enqueue_chapter(self, manga, chapter_id):
+#         chapters_queue.put([self, manga, chapter_id])
 
 sources = []
 sources.append(LocalSource())

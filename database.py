@@ -4,13 +4,14 @@ import json
 import os
 import source
 import re
+import uuid
 
 if not os.path.exists("hondana_data"):
     os.makedirs("hondana_data")
     os.makedirs(pathlib.Path("hondana_data/mangas_data"))
 
 mangas_data_path = pathlib.Path("hondana_data/mangas_data")
-mangas = []
+mangas = {}
 
 class Chapter:
     def __init__(self, data):
@@ -50,11 +51,13 @@ class Manga:
                 break
         update_json_file()
 
-def get_manga(i):
-    return next((x for x in mangas if x.id == i), None)
+    def delete(self):
+        del mangas[self.id]
+        update_json_file()
 
-# need a better way to serialize complex objects, check marshmallow
-# or nevermind this seems to works just fine
+def get_manga(i):
+    return mangas.get(i, None)
+
 def to_dict(obj):
     d = {}
     for key, value in obj.__dict__.items():
@@ -74,7 +77,7 @@ def to_dict(obj):
 
 def get_mangas_info():
     t = []
-    for manga in mangas:
+    for i, manga in mangas.items():
         t.append(to_dict(manga))
     return t
 
@@ -84,24 +87,22 @@ def open_database():
         mangas_data = json.load(mangas_json_file)
         mangas_json_file.close()
 
-        global mangas
         for item in mangas_data:
             manga = Manga(item)
-            mangas.append(manga)
+            mangas[manga.id] = manga
     except OSError as e:
         print("Error opening file: "+e.filename)
     except json.JSONDecodeError as e:
         print("Error decoding JSON file: "+e.msg)
 
 def add_manga(title):
-    print(title)
     if title in [x.title for x in mangas]:
         return "Manga already in library"
 
-    manga_dir = "-".join(re.sub("[^A-Za-z0-9 ]+", "", title).lower().split(" "))
+    manga_dir = re.sub("[^A-Za-z0-9 ]+", "-", title).lower()
 
     manga = Manga({
-        "id": len(mangas),
+        "id": str(uuid.uuid4()),
         "title": title,
         "sources": [0, 1],
         "dir": manga_dir,
@@ -111,7 +112,7 @@ def add_manga(title):
     if not os.path.exists(mangas_data_path / manga_dir):
         os.makedirs(mangas_data_path / manga_dir)
 
-    mangas.append(manga)
+    mangas[manga.id] = manga
     update_manga_info(manga.id)
 
     return "Manga added to library"
@@ -133,7 +134,7 @@ def search_anilist(title):
     return req_data
 
 def update_manga_info(i):
-    manga = next((x for x in mangas if x.id == i), None)
+    manga = get_manga(i)
 
     if manga is None:
         return None
@@ -174,7 +175,10 @@ def update_manga_info(i):
     manga.status = req_data["status"].lower().capitalize()
     manga.description = req_data["description"].split("<br>")[0]
     manga.genres = req_data["genres"]
-    manga.author = req_data["staff"]["nodes"][0]["name"]["full"]
+    if len(req_data["staff"]["nodes"]) > 0:
+        manga.author = req_data["staff"]["nodes"][0]["name"]["full"]
+    else:
+        manga.author = ""
 
     req = requests.get(req_data["coverImage"]["extraLarge"])
 
