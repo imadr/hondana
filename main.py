@@ -23,7 +23,6 @@ def api(args=""):
     elif args[0] == "sources":
         return jsonify([s.name for s in source.sources])
     elif args[0] == "downloads":
-        print(list(source.chapters_progress.values()))
         return jsonify(list(source.chapters_progress.values()))
     elif args[0] == "pause_download":
         if len(args) > 1:

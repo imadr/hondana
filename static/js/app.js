@@ -270,7 +270,10 @@ function set_manga_view(){
     $("#manga-genres").innerHTML = manga.genres.join(", ");
 
     $("#manga-sources-tabs").innerHTML = "";
+
     for(var i = 0; i < sources.length; i++){
+        if(manga.sources.indexOf(i) < 0) continue;
+
         var tab_active = i == current_source ? "active" : "";
         var tab_elem = document.createElement("div");
         tab_elem.classList = "tab "+tab_active;
@@ -506,7 +509,6 @@ function set_reader_page(){
     if(current_page == chapter.n_pages-1){
         fetch("/api/manga/"+manga.id+"/set_chapter_read/"+chapter.id);
     }
-
 
     if(settings["reader_direction"] == "right_to_left"){
         $("#chapter-page-left").innerHTML = chapter.n_pages;
