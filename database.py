@@ -90,16 +90,19 @@ def open_database():
         for item in mangas_data:
             manga = Manga(item)
             mangas[manga.id] = manga
+
     except OSError as e:
         print("Error opening file: "+e.filename)
     except json.JSONDecodeError as e:
         print("Error decoding JSON file: "+e.msg)
 
 def add_manga(title):
-    if title in [x.title for x in mangas]:
+    if title in [manga.title for manga in mangas.values()]:
         return "Manga already in library"
 
-    manga_dir = re.sub("[^A-Za-z0-9 ]+", "-", title).lower()
+    manga_dir = re.sub("[^A-Za-z0-9]+", "-", title).lower()
+    manga_dir = re.sub("^\-", "", manga_dir)
+    manga_dir = re.sub("\-$", "", manga_dir)
 
     manga = Manga({
         "id": str(uuid.uuid4()),
