@@ -23,3 +23,4 @@ Manga reader that runs in the browser, inspired by [Tachiyomi](https://github.co
 ### Supported sources
 
 * Mangalife
+* Manganelo
