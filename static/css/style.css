@@ -256,6 +256,11 @@ input{
     padding-right: 15px;
     margin-bottom: 20px;
 }
+.zoom-slider-info::after{
+    padding-right: 10px;
+    color: var(--color-slider);
+    content: "covers per row";
+}
 .invisible{
     display: none !important;
 }
