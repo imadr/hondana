@@ -5,8 +5,6 @@ import requests
 from bs4 import BeautifulSoup
 import database
 
-i = 2
-
 class Source():
     def __init__(self):
         self.domain = "https://manganelo.com"
