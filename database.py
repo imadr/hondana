@@ -104,10 +104,12 @@ def add_manga(title):
     manga_dir = re.sub("^\-", "", manga_dir)
     manga_dir = re.sub("\-$", "", manga_dir)
 
+    sources = list(range(len(source.sources)))
+
     manga = Manga({
         "id": str(uuid.uuid4()),
         "title": title,
-        "sources": [0, 1],
+        "sources": sources,
         "dir": manga_dir,
         "cover": "cover.jpg",
         "downloaded_chapters": []})

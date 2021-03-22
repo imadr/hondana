@@ -7,6 +7,7 @@ import queue
 import pathlib
 import database
 import uuid
+import importlib
 
 class ChapterDownloader(threading.Thread):
     def __init__(self):
@@ -135,13 +136,10 @@ class LocalSource():
     def __init__(self):
         self.name = "Local"
 
-import pathlib
-import importlib
-
 plugins_path = pathlib.Path("plugins")
 plugins_files = os.listdir(plugins_path)
-sources = {}
-sources[0] = LocalSource()
+sources = []
+sources.append(LocalSource())
 
 for file in plugins_files:
     if file.endswith(".py"):
@@ -150,5 +148,4 @@ for file in plugins_files:
         module.chapter_downloader = chapter_downloader
         module.image_downloader = image_downloader
         module.chapters_progress = chapters_progress
-        sources[module.i] = module.Source()
-sources = [sources[key] for key in sorted(sources.keys())]
+        sources.append(module.Source())
