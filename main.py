@@ -10,6 +10,11 @@ app = Flask(__name__)
 def index(whatever=""):
     return render_template("index.html")
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static',
+        'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route("/mangas/<path:filename>")
 def mangas_data(filename):
     return send_from_directory("hondana_data/mangas_data/", filename)
